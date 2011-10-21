@@ -1,12 +1,14 @@
-module AssesLineDetectionAccuracy
+module GenerateHtkLanguageModel
   require 'ruby-debug'
-  class MultiSampleDefenitionList
+  class MultiSampleStatisticsList
+    attr_reader :consolidated_statistics
     def initialize(ex_file_name,ex_filter_list)
       @file_name = ex_file_name
       @sample_filter_list = ex_filter_list
       @samples = Hash.new
       @current_sample=""
       @in_valid_test = false
+      @consolidated_statistics = Hash.new{0.0}
     end
 
     def set_tag_filter(&block)
@@ -23,6 +25,11 @@ module AssesLineDetectionAccuracy
           process_line(line)
         end
       end
+      generate_consolidated_statistics
+    end
+
+    def each(&block)
+      @samples.each_value &block
     end
 
     def [](sample_name)
@@ -37,16 +44,26 @@ module AssesLineDetectionAccuracy
             @in_valid_test = true
             @current_sample=name
             @sample_filter_list.mark_as_processed(name)
-            @samples[@current_sample] = SampleDefinition.new(@current_sample)
+            @samples[@current_sample] = SampleStatistics.new(@current_sample)
             @samples[@current_sample].set_tag_filter(&@tag_filter)
             @samples[@current_sample].set_line_reader(&@line_reader)
           end
         elsif is_end_of_test_line?(line)
+          @samples[@current_sample].push_line("end") if @in_valid_test
           @in_valid_test = false
         elsif @in_valid_test
           @samples[@current_sample].push_line(line)
         end
       end
+    end
+
+    def generate_consolidated_statistics
+
+        @samples.each_value do |sample|
+           sample.statistics.each do |key,val|
+             @consolidated_statistics[key]+=val
+           end
+        end
     end
 
     def is_file_header_line?(line)

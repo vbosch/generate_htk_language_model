@@ -1,4 +1,4 @@
-module AssesLineDetectionAccuracy
+module GenerateHtkLanguageModel
   require 'ap'
   class SampleList
     def initialize(ex_file_name)

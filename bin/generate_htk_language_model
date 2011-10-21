@@ -5,3 +5,83 @@ require File.expand_path(
 
 # Put your code here
 
+require 'trollop'
+require 'ap'
+
+opts = Trollop::options do
+	version "generate_htk_language_model 0.0.1 (c) 2011 Vicente Bosch Campos"
+	banner <<-EOS
+generate_htk_language_model is a command tool that collects statistics from a sample file (only considering the filtered list)
+and generates htk language model files according to several strategies.
+Usage:
+	generate_htk_language_model [options]
+	where [options] are:
+EOS
+
+opt :train_list_file, "file containing the list of samples used for training", :type => :string
+opt :sample_file, "file containing the language tags detected for each sample", :type => :string
+opt :language_model, "output file where the generated language model will be saved", :type => :string, :default => "output.htk"
+end
+
+Trollop::die :train_list_file, "Test list file was not defined" unless opts[:train_list_file]
+Trollop::die :train_list_file, "Indicated test list file does not exist" unless File.exist?(opts[:train_list_file])
+
+Trollop::die :sample_file, "Sample file was not defined" unless opts[:sample_file]
+Trollop::die :sample_file, "Indicated sample file does not exist" unless File.exist?(opts[:sample_file])
+
+filter_list=GenerateHtkLanguageModel::SampleList.new(opts[:train_list_file])
+
+sample_statistics_list=GenerateHtkLanguageModel::MultiSampleStatisticsList.new(opts[:sample_file],filter_list)
+
+
+
+sample_statistics_list.set_line_reader do |line|
+  line.chomp.upcase.to_sym
+end
+
+sample_statistics_list.set_tag_filter do |formatted_line|
+  false
+end
+
+sample_statistics_list.read
+
+#sample_statistics_list.each do |sample|
+#  ap sample.statistics
+#end
+
+ap sample_statistics_list.consolidated_statistics
+
+model = GenerateHtkLanguageModel::HTKLanguageModel.new
+
+model.add_state("!NULL")
+model.add_state("BS",:START)
+model.add_state("!NULL")
+model.add_state("LINE")
+model.add_state("SLINE")
+model.add_state("PLINE")
+model.add_state("NTLINE")
+model.add_state("!NULL")
+model.add_state("BS",:END)
+
+model.add_transition(0,1,0.0)
+model.add_transition(1,2,0.0)
+
+model.add_transition(2,3,-0.11534188361585573435)
+model.add_transition(3,7,0.0)
+model.add_transition(2,4,-3.43818595103149592432)
+model.add_transition(4,7,0.0)
+model.add_transition(2,5,-3.39562633661269999548)
+model.add_transition(5,7,0.0)
+model.add_transition(2,6,-3.80109144472086437746)
+model.add_transition(6,7,0.0)
+model.add_transition(7,2,-0.05963826631973114785)
+model.add_transition(7,1,-3.92526823217816669710)
+model.add_transition(7,8,-3.68887945411393630285)
+
+#model.write(opts[:language_model])
+
+model.draw("before.png")
+
+model.recalculate_probabilities_from_statistics(sample_statistics_list.consolidated_statistics)
+
+model.draw("diagram.png")

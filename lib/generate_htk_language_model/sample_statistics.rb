@@ -1,9 +1,11 @@
-module AssesLineDetectionAccuracy
+module GenerateHtkLanguageModel
   require 'ap'
-  class SampleDefinition
+  class SampleStatistics
+    attr_reader :statistics
     def initialize(ex_name)
       @name= ex_name
-      @lines = Array.new
+      @last_read=:START
+      @statistics = Hash.new{0.0}
     end
 
     def set_tag_filter(&block)
@@ -15,21 +17,21 @@ module AssesLineDetectionAccuracy
     end
 
     def push_line(line)
-      tmp = @line_reader.call(line)
-      @lines.push(tmp) unless @tag_filter.call(tmp)
+      line_type = @line_reader.call(line)
+      unless @tag_filter.call(line_type)
+
+        @statistics[[@last_read,line_type]]+=1.0
+
+        @statistics[[:NORMAL,line_type]]+=1.0 if line_type != :END and @last_read != :START
+        @statistics[:COUNT]+=1.0 if line_type != :END
+        @statistics[[:NORMAL,@last_read]]-=1.0 if line_type == :END
+        @last_read=line_type
+      end
     end
 
     def write(file_name)
       File.open(file_name,"w") do |file|
-        file.puts "# File: #{@name}"
-        file.puts "# Resl: ? ?"
-        file.puts " ##############################"
-        file.puts "# Line n:  start     end    #"
-        file.puts " ##############################"
 
-        @lines.each_with_index do |val,index|
-          file.puts "Line #{index+1}: #{val[:start]} #{val[:end]}"
-        end
       end
     end
 
