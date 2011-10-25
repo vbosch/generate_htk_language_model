@@ -1,5 +1,6 @@
 module GenerateHtkLanguageModel
   require 'ap'
+  require 'ruby-debug'
   class State
     attr_reader :id, :label, :type, :transitions
     def initialize(ex_id, ex_label,ex_type = :NORMAL)
@@ -10,8 +11,7 @@ module GenerateHtkLanguageModel
     end
 
     def label_sym
-      return [@type,@label.upcase.to_sym] if @type == :NORMAL or @type == :START
-      [@label.upcase.to_sym,@type]
+      [@type,@label.upcase.to_sym]
     end
 
     def to_s
@@ -34,7 +34,17 @@ module GenerateHtkLanguageModel
         end
       end
 
-      child_label
+
+      if label != "!NULL"
+        temp = Hash.new
+        @transitions.each_value do |val|
+          if val[:to].label != "!NULL"
+              val[:probability] = Math.log(@current_statistics[[label_sym,val[:to].label_sym]]/@current_statistics[label_sym],Math::E)
+              temp[val[:to].id]=val if @current_statistics[[label_sym,val[:to].label_sym]] != 0.0
+          end
+        end
+        @transitions = temp
+      end
 
 
     end

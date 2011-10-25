@@ -4,7 +4,8 @@ module GenerateHtkLanguageModel
     attr_reader :statistics
     def initialize(ex_name)
       @name= ex_name
-      @last_read=:START
+      @last_read=:EMPTY
+      @last_state = []
       @statistics = Hash.new{0.0}
     end
 
@@ -18,14 +19,29 @@ module GenerateHtkLanguageModel
 
     def push_line(line)
       line_type = @line_reader.call(line)
+
       unless @tag_filter.call(line_type)
 
-        @statistics[[@last_read,line_type]]+=1.0
+        at = :NORMAL
+        at = :START if @last_read == :EMPTY
 
-        @statistics[[:NORMAL,line_type]]+=1.0 if line_type != :END and @last_read != :START
-        @statistics[:COUNT]+=1.0 if line_type != :END
-        @statistics[[:NORMAL,@last_read]]-=1.0 if line_type == :END
-        @last_read=line_type
+        if line_type == :END
+          at = :END
+          current_state = [at,@last_read]
+          @statistics[@last_state]-=1.0
+          @statistics[current_state]+=1.0
+          @statistics[@last_transition]-=1
+          @statistics[[@last_transition[0],current_state]]+=1
+
+        else
+          @statistics[:COUNT]+=1.0
+          current_state = [at,line_type]
+          @statistics[current_state]+=1.0
+          @statistics[[@last_state,current_state]]+=1.0 if at != :START
+          @last_transition=[@last_state,current_state]
+          @last_state = current_state
+          @last_read = line_type
+        end
       end
     end
 
