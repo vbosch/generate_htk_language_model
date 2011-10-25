@@ -27,7 +27,7 @@ module GenerateHtkLanguageModel
 
     def recalculate_probabilities_from_statistics(statistics_hash)
       @states.each{|state| state.set_statistics(statistics_hash)}
-      @states.each{|state| state.recalculate_probabilities}
+      @states.each{|state| state.recalculate_probabilities(0.5)}
     end
 
     def is_valid_state_id?(ex_id)

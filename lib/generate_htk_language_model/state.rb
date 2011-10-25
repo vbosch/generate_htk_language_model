@@ -22,11 +22,9 @@ module GenerateHtkLanguageModel
       @current_statistics = statistics_hash
     end
 
-    def recalculate_probabilities
-      ap label_sym
+    def recalculate_probabilities(alpha)
       prior_count = child_count
       @transitions.each_value do |val|
-
         if prior_count == 0.0
           val[:probability] = 0.0
         elsif val[:to].label == "!NULL"
@@ -35,6 +33,22 @@ module GenerateHtkLanguageModel
           val[:probability] = Math.log(@current_statistics[val[:to].label_sym]/prior_count,Math::E)
         end
       end
+
+      child_label
+
+
+    end
+
+    def child_label
+      child = Array.new
+      @transitions.each_value do |val|
+           if val[:to].label == "!NULL"
+             child.concat(val[:to].child_label)
+           else
+              child.push(val[:to].label_sym)
+           end
+        end
+      child
     end
 
     def child_count
