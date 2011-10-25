@@ -21,6 +21,9 @@ EOS
 opt :train_list_file, "file containing the list of samples used for training", :type => :string
 opt :sample_file, "file containing the language tags detected for each sample", :type => :string
 opt :language_model, "output file where the generated language model will be saved", :type => :string, :default => "output.htk"
+opt :draw, "draw png of generated model", :type=> :boolean  ,  :default => false
+opt :diagram_file, "output file of the generated model diagram", :type => :string , :default => 'diagram.png'
+opt :stage_replication, "Replication of intermediate model states", :type => :int , :default => 0
 end
 
 Trollop::die :train_list_file, "Test list file was not defined" unless opts[:train_list_file]
@@ -45,11 +48,7 @@ end
 
 sample_statistics_list.read
 
-#sample_statistics_list.each do |sample|
-#  ap sample.statistics
-#end
-
-ap sample_statistics_list.consolidated_statistics
+#ap sample_statistics_list.consolidated_statistics
 
 model = GenerateHtkLanguageModel::HTKLanguageModel.new
 
@@ -120,13 +119,7 @@ model.add_transition(5,2,-1.38629)
 model.add_transition(5,3,-1.38629)
 model.add_transition(5,4,-1.38629)
 
-
-
-
-#model.write(opts[:language_model])
-
-model.draw("before.png")
-
 model.recalculate_probabilities_from_statistics(sample_statistics_list.consolidated_statistics)
-
-model.draw("diagram.png")
+model.replicate_stages(opts[:stage_replication]) if opts[:stage_replication]>0
+model.write(opts[:language_model])
+model.draw(opts[:diagram_file]) if opts[:draw]

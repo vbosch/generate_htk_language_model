@@ -18,6 +18,10 @@ module GenerateHtkLanguageModel
       "#{@id}: #{@label}"
     end
 
+    def number_of_transitions
+      @transitions.size
+    end
+
     def set_statistics(statistics_hash)
       @current_statistics = statistics_hash
     end

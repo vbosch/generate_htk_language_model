@@ -16,6 +16,9 @@ module GenerateHtkLanguageModel
 
     def add_state(ex_label,ex_type=:NORMAL)
       @states.push(State.new(@states.size, ex_label,ex_type))
+      @start_state = @states.last if ex_type == :START
+      @end_state = @states.last if ex_type == :END
+      @states.size-1
     end
 
     def add_transition(id_from,id_to,probability=0.0)
@@ -28,6 +31,40 @@ module GenerateHtkLanguageModel
     def recalculate_probabilities_from_statistics(statistics_hash)
       @states.each{|state| state.set_statistics(statistics_hash)}
       @states.each{|state| state.recalculate_probabilities(0.5)}
+      @transitions = @states.inject(0){|res,state|res+=state.number_of_transitions}
+    end
+
+    def replicate_stages(num_forced_stages)
+
+      old_states = @states.delete_if{|state| state.id == @start_state.id or state.id == @end_state.id }
+      @states = Array.new
+      @transitions = 0
+      old_start_state = @start_state
+      add_state(@start_state.label,@start_state.type)
+
+      old_states.each do |state|
+        add_state(state.label,state.type)
+        add_transition(0,@states.size-1,old_start_state.transitions[state.id][:probability]) unless old_start_state.transitions[state.id].nil?
+      end
+
+      (num_forced_stages-1).times do |i|
+        old_states.each do |state|
+          add_state(state.label,state.type)
+        end
+        old_states.each do |state|
+          state.transitions.each_value do |transition|
+            add_transition((i*old_states.size)+state.id,((i+1)*old_states.size)+transition[:to].id,transition[:probability])
+          end
+        end
+      end
+
+      old_end_state = @end_state
+      add_state(@end_state.label,@end_state.type)
+
+      @states[-(old_states.size+1)..-2].each_with_index do |state,relative_index|
+        add_transition(state.id,@states.size-1,old_states[relative_index].transitions[old_end_state.id][:probability]) unless old_states[relative_index].transitions[old_end_state.id].nil?
+      end
+
     end
 
     def is_valid_state_id?(ex_id)
