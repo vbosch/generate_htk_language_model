@@ -44,7 +44,7 @@ module GenerateHtkLanguageModel
 
       old_states.each do |state|
         add_state(state.label,state.type)
-        add_transition(0,@states.size-1,old_start_state.transitions[state.id][:probability]) unless old_start_state.transitions[state.id].nil?
+        add_transition(0,@states.size-1,old_start_state.transitions[state.id].nil? ? -1000 : old_start_state.transitions[state.id][:probability])
       end
 
       (num_forced_stages-1).times do |i|
@@ -62,7 +62,7 @@ module GenerateHtkLanguageModel
       add_state(@end_state.label,@end_state.type)
 
       @states[-(old_states.size+1)..-2].each_with_index do |state,relative_index|
-        add_transition(state.id,@states.size-1,old_states[relative_index].transitions[old_end_state.id][:probability]) unless old_states[relative_index].transitions[old_end_state.id].nil?
+        add_transition(state.id,@states.size-1, old_states[relative_index].transitions[old_end_state.id].nil? ? -1000 : old_states[relative_index].transitions[old_end_state.id][:probability])
       end
 
     end
